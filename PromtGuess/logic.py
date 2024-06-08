@@ -5,22 +5,10 @@ import requests
 import base64
 from PIL import Image
 from io import BytesIO
-import telebot
-bot = telebot.TeleBot(API_TOKEN)
-
-
-
-class guess:
-    def __init__(self, url, api_key, secret_key, gpt_key):
-        self.URL = url
-        self.AUTH_HEADERS = {
-            'X-Key': f'Key {api_key}',
-            'X-Secret': f'Secret {secret_key}',
-        }
-
+import openai
+import random
 
 class Text2ImageAPI:
-
     def __init__(self, url, api_key, secret_key):
         self.URL = url
         self.AUTH_HEADERS = {
@@ -65,11 +53,27 @@ class Text2ImageAPI:
     def convert_to_img(self, base64_string, path):
         decoded_data = base64.b64decode(base64_string)
         image = Image.open(BytesIO(decoded_data))
-        image.save(path)  
+        image.save(path)
+
+class OpenAIAPI:
+    def __init__(self, api_key):
+        self.api_key = api_key
+        openai.api_key = api_key
+
+    def generate_prompts(self, initial_prompt, num_prompts=4):
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": f"Generate {num_prompts} different image prompts based on this prompt: {initial_prompt}"}
+            ],
+            n=num_prompts,
+            temperature=0.7
+        )
+        prompts = [choice['message']['content'].strip() for choice in response.choices]
+        return prompts
 
 if __name__ == '__main__':
-    api = Text2ImageAPI('https://api-key.fusionbrain.ai/', API_KEY, SECRET_KEY)
-    model_id = api.get_model()
-    uuid = api.generate(model_id)
-    images = api.check_generation(uuid)[0]
-    api.convert_to_img(images, 'img.png')
+    initial_prompt = "Generate 4 creative image prompts"
+    ai = OpenAIAPI(GPT_KEY)
+    prompts = ai.generate_prompts(initial_prompt)
+    print(prompts)
